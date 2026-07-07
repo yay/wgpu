@@ -1,4 +1,4 @@
-use alloc::borrow::ToOwned as _;
+use alloc::{borrow::ToOwned as _, boxed::Box};
 
 use objc2::{
     available,
@@ -20,6 +20,7 @@ impl super::Surface {
             render_layer: Mutex::new(layer),
             swapchain_format: RwLock::new(None),
             extent: RwLock::new(wgt::Extent3d::default()),
+            transaction_presentation: Default::default(),
         }
     }
 
@@ -30,6 +31,32 @@ impl super::Surface {
 
     pub fn render_layer(&self) -> &Mutex<Retained<CAMetalLayer>> {
         &self.render_layer
+    }
+
+    /// Returns the newest generation submitted using transaction presentation.
+    pub fn submitted_transaction_presentation(&self) -> u64 {
+        self.transaction_presentation.submitted()
+    }
+
+    /// Returns the newest transaction-presented generation displayed onscreen.
+    pub fn completed_transaction_presentation(&self) -> u64 {
+        self.transaction_presentation.completed()
+    }
+
+    /// Runs `callback` after `generation` or a newer generation is displayed.
+    ///
+    /// Runs the callback immediately if that presentation has already happened.
+    pub fn notify_transaction_presentation<F>(&self, generation: u64, callback: F)
+    where
+        F: FnOnce() + Send + Sync + 'static,
+    {
+        let callback: super::TransactionPresentationCallback = Box::new(callback);
+        if let Some(callback) = self
+            .transaction_presentation
+            .register_waiter(generation, callback)
+        {
+            callback();
+        }
     }
 
     /// Gets the current dimensions of the `Surface`.

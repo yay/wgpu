@@ -42,6 +42,12 @@ Bottom level categories:
 
 ## Unreleased
 
+### New Features
+
+#### Metal
+
+- Expose transaction-presentation generations and completion callbacks to `wgpu-hal` clients. By @yay in [#9828](https://github.com/gfx-rs/wgpu/pull/9828).
+
 ## v29.0.4 (2026-07-01)
 
 ### New Features
